@@ -1,10 +1,12 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "stdio.h"
+#include "stdlib.h"
 #include "string.h"
+#include "locale.h"
 
 #define MAX_CONTACTS 100
 #define MAX_LENGTH 50
-#define FILENAME "contacts.txt"
+#define FILENAME "contacts.dat"
 
 typedef struct {
     char work[MAX_LENGTH];
@@ -31,39 +33,18 @@ void cleanBuff() {
 }
 
 void readContacts(Contact contacts[], int* count) {
-    FILE* file = fopen(FILENAME, "r");
+    FILE* file = fopen(FILENAME, "rb");
     if (file == NULL) {
         return;
     }
 
-    fscanf(file, "%d\n", count);
+    fread(count, sizeof(int), 1, file);
 
     for (int i = 0; i < *count; i++) {
-        fgets(contacts[i].name, MAX_LENGTH, file);
-        contacts[i].name[strcspn(contacts[i].name, "\n")] = '\0';
-        fgets(contacts[i].job, MAX_LENGTH, file);
-        contacts[i].job[strcspn(contacts[i].job, "\n")] = '\0';
-        fgets(contacts[i].phone, MAX_LENGTH, file);
-        contacts[i].phone[strcspn(contacts[i].phone, "\n")] = '\0';
-        fgets(contacts[i].email.work, MAX_LENGTH, file);
-        contacts[i].email.work[strcspn(contacts[i].email.work, "\n")] = '\0';
-        fgets(contacts[i].email.home, MAX_LENGTH, file);
-        contacts[i].email.home[strcspn(contacts[i].email.home, "\n")] = '\0';
-
-        fscanf(file, "%d\n", &contacts[i].social_count);
+        fread(&contacts[i], sizeof(Contact), 1, file);
         if (contacts[i].social_count > 0) {
             contacts[i].social = malloc(contacts[i].social_count * sizeof(SocialProfile));
-            for (int j = 0; j < contacts[i].social_count; j++) {
-                fgets(contacts[i].social[j].social_network, MAX_LENGTH, file);
-                contacts[i].social[j].social_network[strcspn(contacts[i].social[j].social_network, "\n")] = '\0';
-                fgets(contacts[i].social[j].social_address, MAX_LENGTH, file);
-                contacts[i].social[j].social_address[strcspn(contacts[i].social[j].social_address, "\n")] = '\0';
-                fgets(contacts[i].social[j].nickname, MAX_LENGTH, file);
-                contacts[i].social[j].nickname[strcspn(contacts[i].social[j].nickname, "\n")] = '\0';
-            }
-        }
-        else {
-            contacts[i].social = NULL;
+            fread(contacts[i].social, sizeof(SocialProfile), contacts[i].social_count, file);
         }
     }
 
@@ -71,25 +52,18 @@ void readContacts(Contact contacts[], int* count) {
 }
 
 void writeContacts(Contact contacts[], int count) {
-    FILE* file = fopen(FILENAME, "w");
+    FILE* file = fopen(FILENAME, "wb");
     if (file == NULL) {
         printf("Error: failed to open file.\n");
         return;
     }
 
-    fprintf(file, "%d\n", count);
+    fwrite(&count, sizeof(int), 1, file);
 
     for (int i = 0; i < count; i++) {
-        fprintf(file, "%s\n", contacts[i].name);
-        fprintf(file, "%s\n", contacts[i].job);
-        fprintf(file, "%s\n", contacts[i].phone);
-        fprintf(file, "%s\n", contacts[i].email.work);
-        fprintf(file, "%s\n", contacts[i].email.home);
-        fprintf(file, "%d\n", contacts[i].social_count);
-        for (int j = 0; j < contacts[i].social_count; j++) {
-            fprintf(file, "%s\n", contacts[i].social[j].social_network);
-            fprintf(file, "%s\n", contacts[i].social[j].social_address);
-            fprintf(file, "%s\n", contacts[i].social[j].nickname);
+        fwrite(&contacts[i], sizeof(Contact), 1, file);
+        if (contacts[i].social_count > 0) {
+            fwrite(contacts[i].social, sizeof(SocialProfile), contacts[i].social_count, file);
         }
     }
 
@@ -290,6 +264,8 @@ void printContact(Contact contact) {
 }
 
 int main() {
+    setlocale(LC_ALL, "Rus");
+
     Contact contacts[MAX_CONTACTS];
     int count = 0;
     int tmp = 0;
@@ -313,7 +289,7 @@ int main() {
             break;
         case 2:
             printf("\033[0d\033[2J");
-            editContact(contacts, &count);
+            editContact(contacts, count);
             break;
         case 3:
             printf("\033[0d\033[2J");
